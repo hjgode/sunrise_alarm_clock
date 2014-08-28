@@ -51,9 +51,11 @@
 // ****************************************************************************************
 
 #define DEBUGMODE 0 // If false, no data is written to eeprom and display is default in details mode.
+#define TEST 1      // if 1 show test LED steps
 
 #include "initialize.h"
 #include "SpechialChars.h"
+#include "cie1931.h"
 
 #include <SPI.h>
 #include <LiquidCrystal_I2C.h>
@@ -117,6 +119,52 @@ bool displayDateTime = false;
 int lastMinute = -1;
 int quickMenuIndex = -1;		 // Counter for QuickMenu index
 
+
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// setLED
+// param int
+// set LEDs with CIE luminance correction
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+void setLED(int i){
+  Serial.print("i=");Serial.println(i);
+  byte b=(byte) i;
+  byte bCIE = pgm_read_byte_near(cie+b);
+  Serial.print("b=");Serial.println(b);
+  Serial.print("CIE=");
+  Serial.println(bCIE);
+  //RGB
+  /*
+  analogWrite(lightPin, bCIE);
+  analogWrite(lightPin2, bCIE);
+  analogWrite(lightPin3, bCIE);
+  */
+  //HSV
+  hsvRGB hsv;
+  hsv.H=b;
+  hsv.S=b;
+  hsv.V=b;
+  hsvRGB rgb=hsv_to_rgb(hsv);
+  Serial.print("R G B after hsv_to_rgb:"); 
+  Serial.print(rgb.R); Serial.print(rgb.G); Serial.print(rgb.B);
+  analogWrite(lightPin, rgb.R);
+  analogWrite(lightPin2, rgb.G);
+  analogWrite(lightPin3, rgb.B);
+ }
+
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// testLEDsteps 
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+void testLEDsteps(){
+  return;
+  for(int x=0; x<256; x++){
+    Serial.print("x->");Serial.println(cie[x]);
+  }
+  for(int x=0; x<256; x++){
+    setLED(x);
+    delay(500);
+  }
+}
+
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 // Setup 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -128,9 +176,10 @@ void setup () {
   pinMode(buzzerPin, OUTPUT); 
   pinMode(A0, INPUT);
 
-  analogWrite(lightPin, 0);
-  analogWrite(lightPin2, 0);
-  analogWrite(lightPin3, 0);
+  setLED(0);
+//  analogWrite(lightPin, 0);
+//  analogWrite(lightPin2, 0);
+//  analogWrite(lightPin3, 0);
   
   digitalWrite(buzzerPin, LOW);
 
@@ -227,8 +276,8 @@ void setup () {
   radio.tuneFrequency(radioFrequency);
 #endif
 
-  stepSize = 255.0f / (fadeInTime * 60); // May be use a 'log' curve.
-
+  stepSize = 255.0f / (float)(fadeInTime * 60.0f); // May be use a 'log' curve.
+Serial.print("stepSize=");Serial.println(stepSize);
   // Dump eeprom to serial
   Serial.println("\n-- Dump eeprom -------------------------------");
   Serial.print("alarmHour: ");  
@@ -294,15 +343,19 @@ void setup () {
 
   //digitalWrite(lightPin, manualLight ? HIGH : LOW); // Light off
   if(manualLight)
-    analogWrite(lightPin, manualLightIntensity);
+    setLED(manualLightIntensity);//analogWrite(lightPin, manualLightIntensity);
   else
-    analogWrite(lightPin, 0);
+    setLED(0);// analogWrite(lightPin, 0);
     
   //defaultDisplayMode = false; // Show info display.
 
   lcd.clear();
   // Rady Beep
   tone(buzzerPin, beepFrequency, 200);
+  #if TEST
+    Serial.println("testLEDsteps()...");
+    testLEDsteps();
+  #endif
 }  // End setup()
 
 // Currently not used: int lastMenuIndex = -1;
@@ -350,7 +403,7 @@ void loop () {
       {
         if (quickMenuIndex < 0)
         {
-			WriteBigTime(lcd, now, alarmActive);
+	   WriteBigTime(lcd, now, alarmActive);
         }
         //else // Show Quick Set up.
         //{
@@ -419,11 +472,13 @@ void loop () {
       //      
       //      if (intensity > 255)
       //        intensity = 255;
-      analogWrite(lightPin, (int)intensity); // Light on. 
+      setLED((int)intensity);
+      Serial.println("Intensity=");
+      Serial.println(intensity);
+      //analogWrite(lightPin, (int)intensity); // Light on. 
       if (intensity < 255){
         intensity += stepSize; // May be use a 'log' curve for intensity
-        Serial.println("Intensity=");
-        Serial.println(intensity);
+        //setLED uses a CIE table!
       }
     }
     else{
@@ -634,7 +689,8 @@ void loop () {
   Serial.println("+++ manualLightIntensity = ");
   Serial.println(manualLightIntensity);
 			}
-			analogWrite(lightPin, (int)pow(manualLightIntensity, 3)); // Divide steps to 'low', 'mid', 'high'
+                        setLED((int)manualLightIntensity*60); //0-4 => 0-240
+			//analogWrite(lightPin, (int)pow(manualLightIntensity, 3)); // Divide steps to 'low', 'mid', 'high'
 			break;
 		}
 
