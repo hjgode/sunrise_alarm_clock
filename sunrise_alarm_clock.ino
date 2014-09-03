@@ -122,16 +122,27 @@ int quickMenuIndex = -1;		 // Counter for QuickMenu index
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 // setLED
-// param int
+// param int 0-255
 // set LEDs with CIE luminance correction
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 void setLED(int i){
   Serial.print("i=");Serial.println(i);
   byte b=(byte) i;
+  byte bR=redRamp[i/8]/4; //the ramps have only 32 values
+  byte bG=greenRamp[i/8]/4; //the ramps have only 32 values
+  byte bB=blueRamp[i/8]/4; //the ramps have only 32 values
+  Serial.print("R G B from rampXYZ"); 
+  Serial.print(bR); Serial.print("/");Serial.print(bG); Serial.print("/");Serial.println(bB);
+  analogWrite(lightPin, bR);
+  analogWrite(lightPin2, bG);
+  analogWrite(lightPin3, bB);
+  return;
+  /*
   byte bCIE = pgm_read_byte_near(cie+b);
   Serial.print("b=");Serial.println(b);
   Serial.print("CIE=");
   Serial.println(bCIE);
+  */
   //RGB
   /*
   analogWrite(lightPin, bCIE);

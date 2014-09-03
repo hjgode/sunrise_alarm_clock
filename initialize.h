@@ -37,7 +37,7 @@ const char* _Light = { "LIGHT: "};
 // TODO: Add other reusable strings.
 
 int pauseTime = 1500; // Pause when showing status. TODO: Maybe use other way for delay.
-int beepFrequency = 1000;
+int beepFrequency = 100;
 
 bool alarmActive = false;    // Specifies that the alarm is active.
 bool alarmIsRadio = false;   // Specifies if the alarm is sounr or radio.
