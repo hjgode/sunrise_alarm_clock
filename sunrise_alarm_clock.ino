@@ -69,6 +69,9 @@
   #include "Si4735.h"
 #endif
 
+#include <SoftwareSerial.h>
+SoftwareSerial mp3(2, 3);//modify this with the connector you are using.
+
 #include "LCDoutput.h"
 #include "keyboard.h"
 #include "helpers.h"

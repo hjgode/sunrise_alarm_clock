@@ -8,10 +8,12 @@ Button getKey(int delayTime)
 	int value = 0;
 	int tolerance = 4; // Allowable diference between 1st and 2nd reading of analog value.
 	int sampleSize = 10;
-
-	if (analogRead(A0) >= 1000) // discard
+        int aRead=analogRead(A0);
+//Serial.print("analogRead="); Serial.println(aRead);
+	if (aRead >= 1000) // discard
 	{
-		return noKey;
+//Serial.println("no key");
+	  return noKey;
 	}
 
 	for (int i = 0; i < sampleSize; i++)
@@ -21,7 +23,7 @@ Button getKey(int delayTime)
 	}
 
 	value = (value / sampleSize);
-
+//Serial.print("value=");Serial.println(value);
 	delay(delayTime); // Short delay (50) for setting values, longer (200) for menu navigation.
 
 	//Serial.println(value);
@@ -31,7 +33,7 @@ Button getKey(int delayTime)
 
 	if ((value > valMin) && (value < valMax))
 	{
-		if ((value < 290) && (value > 280))
+		if ((value > 280) && (value < 290))
 		{
 			return btnLeft; 
 		}
@@ -39,11 +41,11 @@ Button getKey(int delayTime)
 		{
 			return btnDown; 
 		}
-		else if ((value > 455) && (value < 470))
+		else if ((value > 450) && (value < 470))//was 455-570
 		{
 			return btnRight; 
 		}
-		else if ((value > 610) && (value < 620))
+		else if ((value > 600) && (value < 620))//was 610-620
 		{
 			return btnUp; 
 		}
@@ -57,6 +59,9 @@ Button getKey(int delayTime)
 		}
 		return noKey;
 	} 
+      else{
+        Serial.println("readKey outside tolerance");
+      }
 }
 
 // ****************************************
