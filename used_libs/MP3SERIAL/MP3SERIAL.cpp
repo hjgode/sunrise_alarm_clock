@@ -15,15 +15,39 @@ SoftwareSerial _mp3serial(_iRX,_iTX);
 const uint8_t END=0xFF;
 uint8_t aPauseToggle[]={0x7e,0x02,0xa3,0x7e, END};
 
+//private func to print hex
+void printHex8(uint8_t *data, uint8_t length) // prints 8-bit data in hex with leading zeroes
+{
+        Serial.print("0x"); 
+        for (int i=0; i<length; i++) { 
+          if (data[i]<0x10) {Serial.print("0");} 
+          Serial.print(data[i],HEX); 
+          Serial.print(" "); 
+        }
+}
+
+void printHex8(uint8_t data) // prints 8-bit data in hex with leading zeroes
+{
+  byte buf[1]; buf[0]=data;
+  printHex8(buf, 1);
+}
+
 //private func to check for OK code 
-boolean isOKcode(){
+boolean isOKcode(byte checkCode){
 	int countDown=10;
+	byte bRead=0;
 	while(_mp3serial.available() && countDown>0)
 	{
-	    if (0xA0==_mp3serial.read())
+		bRead = _mp3serial.read();
+	    if (checkCode==bRead){
 	        return true;
-	    else 
+	    }
+	    else {
+	    #ifdef DEBUG
+	    	Serial.print("isOKcode="); printHex8(bRead);
+	    #endif
 	        return false;
+	    }
 	    delay(10);
 	    countDown--;
     }
@@ -56,7 +80,7 @@ bool MP3SERIAL::stop(){
 	_mp3serial.write(0xA4);
 	_mp3serial.write(0x7E);
 	 delay(10);
-	 return isOKcode();
+	 return isOKcode(0xA4);
 }
 
 //next
@@ -66,7 +90,7 @@ bool MP3SERIAL::next(){
 	_mp3serial.write(0xA5);
 	_mp3serial.write(0x7E);
 	 delay(10);
-	 return isOKcode();
+	 return isOKcode(0xA5);
 }
 
 //next
@@ -76,7 +100,7 @@ bool MP3SERIAL::prev(){
 	_mp3serial.write(0xA6);
 	_mp3serial.write(0x7E);
 	 delay(10);
-	 return isOKcode();
+	 return isOKcode(0xA6);
 }
 
 bool MP3SERIAL::pauseToggle(){
@@ -85,7 +109,7 @@ bool MP3SERIAL::pauseToggle(){
 	_mp3serial.write(0xA3);
 	_mp3serial.write(0x7E);
 	 delay(10);
-	 return isOKcode();
+	 return isOKcode(0xA3);
 }
 
 //setVolume
@@ -99,7 +123,7 @@ bool MP3SERIAL::setVolume(byte iVolume){
     _mp3serial.write(iVolume);
     _mp3serial.write(0x7E);
     delay(10);
-    return isOKcode();
+    return isOKcode(0xA7);
 }
 
 
@@ -115,7 +139,7 @@ bool MP3SERIAL::setRepeatMode(repeatMode bMode){
 	_mp3serial.write((byte)bMode);
 	_mp3serial.write(0x7E);
     delay(10);
-    return ::isOKcode();
+    return ::isOKcode(0xA9);
 }
 //setRepeatAll
 bool MP3SERIAL::setRepeatAll(){
@@ -133,10 +157,9 @@ bool MP3SERIAL::setRepeatNone(){
 }
 
 bool MP3SERIAL::playByIndex(uint8_t lbyte){
-	playByIndex(0x00, lbyte);
-    delay(10);
-    return(isOKcode());
+	return playByIndex(0x00, lbyte);
 }
+
 //play mp3 by index
 //Set the music index to play, the index is decided by the input sequence
 //of the music;
@@ -151,16 +174,7 @@ bool MP3SERIAL::playByIndex(uint8_t hbyte,uint8_t lbyte)
 	_mp3serial.write(lbyte);
 	_mp3serial.write(0x7E);
     delay(10);
-    /*
-	while(_mp3serial.available())
-	{
-	    if (0xA0==_mp3serial.read())
-	        return true;
-	    else 
-	        return false;
-    }
-    */
-    return isOKcode();
+    return isOKcode(0xA0);
 }
 
 byte MP3SERIAL::getVolume(){
@@ -170,23 +184,22 @@ byte MP3SERIAL::getVolume(){
 	_mp3serial.write(0xC1);
 	_mp3serial.write(0x7E);
     delay(10);
-    int maxCount=5;
     //any data avilable?
-	while(_mp3serial.available() && maxCount>0)
+	if(_mp3serial.available())
 	{
-		//answer code?
-	    if (0xC1==_mp3serial.read())
+		byte bRead=_mp3serial.read();
+		if(bRead==0xC1)
 	    {
 	    	if(_mp3serial.available()){
 	    		bVolume=_mp3serial.read();
 	    		return bVolume;
 	    	}
-		    else
+		    else{
 		        return 0;
+		    }
 	    }
 	    else
 	        return 0;
-	    maxCount--;
     }
 	return 0;
 }
@@ -222,8 +235,9 @@ byte MP3SERIAL::getState(){
 	return 0;
 }
 
-byte MP3SERIAL::getSDNumFiles(){
+int MP3SERIAL::getSDNumFiles(){
 	byte bAnswer=0;
+	byte bAnswer2=0;
 	_mp3serial.write(0x7E);
 	_mp3serial.write(0x02);
 	_mp3serial.write(0xC4);
@@ -231,22 +245,26 @@ byte MP3SERIAL::getSDNumFiles(){
     delay(10);
     int maxCount=5;
     //any data avilable?
-	while(_mp3serial.available() && maxCount>0)
+	byte bRead=_mp3serial.read();
+	Serial.print("mp3serial read=0x");Serial.println(bRead, HEX);
+	if (0xC4==bRead)
 	{
-		//answer code?
-	    if (0xC4==_mp3serial.read())
-	    {
-	    	if(_mp3serial.available()){
-	    		bAnswer=_mp3serial.read();
-	    		return bAnswer;
-	    	}
-		    else
-		        return 0;
-	    }
-	    else
-	        return 0;
-	    maxCount--;
-    }
+		if(_mp3serial.available()){
+			//read high byte of answer 
+			bAnswer=_mp3serial.read();
+			Serial.print("mp3serial read answer=0x");Serial.println(bAnswer, HEX);
+			//read low byte of answer
+			if(_mp3serial.available()){
+				bAnswer2=_mp3serial.read();
+				  Serial.print("mp3serial read answer2=0x");Serial.println(bAnswer2, HEX);
+				return bAnswer*0xff+bAnswer2;
+			}
+			return 0;
+		}
+	}
+	else{
+		return 0;
+	}
 	return 0;
 }
 

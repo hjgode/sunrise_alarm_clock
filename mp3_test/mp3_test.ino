@@ -2,17 +2,6 @@
 #include <SoftwareSerial.h>
 #include <MP3SERIAL.h>
 
-
-/* YourDuino SoftwareSerialExample1
-   - Connect to another Arduino running "YD_SoftwareSerialExample1Remote"
-   - Connect this unit Pins 10, 11, Gnd
-   - To other unit Pins 11,10, Gnd  (Cross over)
-   - Open Serial Monitor, type in top window. 
-   - Should see same characters echoed back from remote Arduino
-
-   Questions: terry@yourduino.com 
-*/
-
 /*-----( Import needed libraries )-----*/
 #include "MP3SERIAL.h"
 
@@ -50,8 +39,6 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
     Serial.println(byteReceived);
       switch(byteReceived){
         case 13:
-          bVolume=myMP3.getVolume();
-          Serial.print("Volume is: "); Serial.println(bVolume);
           break;
         case 0x2B: // +
           bVolume=myMP3.getVolume();
@@ -73,8 +60,7 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
           myMP3.stop();
           break;
         case 0x69: // i
-          bState=myMP3.getState();
-          dumpState(bState);
+          dumpState();
           break;
         case 0x31: // 1
         case 0x32: // 1
@@ -88,10 +74,17 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
         case 0x40: // 1
           play(byteReceived);
           break;
+        case 0x76: // v = volume read
+          bVolume=myMP3.getVolume();
+          Serial.print("Volume="); Serial.println(bVolume);
+          break;
+        case 0x63: //c = count of files
+          printNumFiles();
+          break;
         default:
         break;
       }// switch
-      dumpState();
+//      dumpState();
       digitalWrite(Pin13LED, LOW);  // Show activity    
       delay(25);
       Serial.flush();
@@ -102,6 +95,13 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
 void dumpState(){
   bState=myMP3.getState();
  dumpState(bState); 
+ delay(10);
+ bVolume=myMP3.getVolume();
+ Serial.print("Volume="); Serial.println(bVolume, HEX);
+ delay(10);
+ printNumFiles();
+ delay(10);
+ currentFile();
 }
 
 void dumpState(byte state){
@@ -120,16 +120,26 @@ void dumpState(byte state){
       Serial.println("n/a");;
       break;
   }
-  Serial.print("num files: "); Serial.println(myMP3.getSDNumFiles());
   
 }
 
+void currentFile(){
+  byte numFiles=myMP3.getSDcurrentFile();
+  Serial.print("current file: "); Serial.println(numFiles);
+}
+
+void printNumFiles(){
+  byte numFiles=myMP3.getSDNumFiles();
+  Serial.print("num files: "); Serial.println(numFiles);
+}
 void play(byte idx){
   byte maxIdx=myMP3.getSDNumFiles();
   maxIdx=10; //test
   if(idx<maxIdx)
     myMP3.playByIndex(idx);
 }
+
+
 //NONE
 //*********( THE END )***********
 

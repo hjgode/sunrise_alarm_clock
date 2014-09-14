@@ -31,7 +31,7 @@ class MP3SERIAL {
         bool setVolume(byte iVol);
         byte getVolume();
         byte getState();
-        byte getSDNumFiles();
+        int getSDNumFiles();
         int getSDcurrentFile();
         bool setRepeatMode(repeatMode bMode);
         bool setRepeatAll();
