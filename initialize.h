@@ -62,3 +62,4 @@ enum Button {
 
 char *menuItems[menuItemCount];
 char *quickItems[quickMenuCount];
+

@@ -96,3 +96,4 @@ byte newChar7[8] = { // Blank
 	B00000
 };
 
+

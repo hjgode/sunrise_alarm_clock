@@ -289,3 +289,4 @@ void MP3SERIAL::writeCommand(uint8_t* arrayBytes){
     
 }
 
+

@@ -173,3 +173,4 @@ void WriteBigTime(LiquidCrystal_I2C &lcd, DateTime time, bool alarmOn)
     lcd.write(((time.second() % 2) == 0) ? 4 : 7);
 }
 
+

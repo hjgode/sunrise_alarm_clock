@@ -1,3 +1,8 @@
+//=======================================================
+// TODO: save program RAM by using PROGMEM for strings etc!
+// see http://arduino.cc/en/Reference/PROGMEM
+//=======================================================
+
 // ***************************************************************
 // Build uploaded to Arduino: 01-02-2012
 // ***************************************************************
@@ -122,6 +127,17 @@ bool displayDateTime = false;
 int lastMinute = -1;
 int quickMenuIndex = -1;		 // Counter for QuickMenu index
 
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// for debug
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+int freeRam () {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+void printFreeRam(){
+  Serial.print("Free RAM="); Serial.println(freeRam());
+}
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 // setLED
@@ -131,11 +147,13 @@ int quickMenuIndex = -1;		 // Counter for QuickMenu index
 void setLED(int i){
   Serial.print("i=");Serial.println(i);
   byte b=(byte) i;
-  byte bR=redRamp[i/8]/4; //the ramps have only 32 values
-  byte bG=greenRamp[i/8]/4; //the ramps have only 32 values
-  byte bB=blueRamp[i/8]/4; //the ramps have only 32 values
+  byte bR=pgm_read_byte_near(redRamp   + i/8) / 4; //the ramps have only 32 values
+  byte bG=pgm_read_byte_near(greenRamp + i/8) / 4; //the ramps have only 32 values
+  byte bB=pgm_read_byte_near(blueRamp  + i/8) / 4; //the ramps have only 32 values
+#if TEST
   Serial.print("R G B from rampXYZ"); 
   Serial.print(bR); Serial.print("/");Serial.print(bG); Serial.print("/");Serial.println(bB);
+#endif
   analogWrite(lightPin, bR);
   analogWrite(lightPin2, bG);
   analogWrite(lightPin3, bB);
@@ -183,24 +201,27 @@ void testLEDsteps(){
 // Setup 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 void setup () {
+  Serial.begin(57600);
+  Serial.println("sunRise Alarm Clock v0.01");
+  printFreeRam();
+  Wire.begin();
+  RTC.begin();
+  printFreeRam();
 
   pinMode(lightPin, OUTPUT); 
   pinMode(lightPin2, OUTPUT); 
   pinMode(lightPin3, OUTPUT); 
   pinMode(buzzerPin, OUTPUT); 
   pinMode(A0, INPUT);
+  digitalWrite(buzzerPin, LOW);
 
+  printFreeRam();
   setLED(0);
 //  analogWrite(lightPin, 0);
 //  analogWrite(lightPin2, 0);
 //  analogWrite(lightPin3, 0);
+  printFreeRam();
   
-  digitalWrite(buzzerPin, LOW);
-
-  Serial.begin(57600);
-
-  Wire.begin();
-  RTC.begin();
 
   if (! RTC.isrunning()) {
 	  Serial.println("RTC is NOT running!");
@@ -229,6 +250,7 @@ void setup () {
   lcd.createChar(5, newChar5);
   lcd.createChar(6, newChar6);
   lcd.createChar(7, newChar7); 
+  printFreeRam();
 
 #ifdef USE_FM_RADIO
   // Initialize Radio.
@@ -259,9 +281,10 @@ void setup () {
 #ifdef USE_FM_RADIO
   radioFrequency = 8890;//10800;
 #endif
-}
+  }//DEBUGMODE
   else
   {
+    lcd.print("EERPOM read...");
     alarmHour = EEPROM.read(alarmHourAddr);
     alarmMinute = EEPROM.read(alarmMinuteAddr);
     alarmActive = (boolean)EEPROM.read(alarmActiveAddr); // Specified if the Alarm in turned on.
@@ -272,8 +295,9 @@ void setup () {
     radioFrequency = EEPROMReadInt(radioFrequencyAddr);
 #endif
     alarmIsRadio = (bool)EEPROM.read(alarmIsRadioAddr);
-  }
+  }//DEBUGMODE
 
+  lcd.print("EERPOM verify...");
   // Adjust for illegal values.
   if ((alarmHour < 0) || (alarmHour > 23))
     alarmHour = 0;
@@ -444,7 +468,7 @@ void loop () {
     }
 
     if (!wakeUpLightOn)
-      wakeUpLightOn = ((now.hour() == lightOnTime.hour()) && (now.minute() ==  lightOnTime.minute()) && useWakeUpLight); // NB! TEST
+      wakeUpLightOn = ((now.hour() == lightOnTime.hour()) && (now.minute() ==  lightOnTime.minute()) && useWakeUpLight && alarmActive); // NB! TEST
 
     if (!alarmOn)
     {
@@ -917,6 +941,7 @@ void debugPrintTime(DateTime now)
 
   Serial.println();
 }
+
 
 
 
