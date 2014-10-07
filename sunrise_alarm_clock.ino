@@ -145,14 +145,14 @@ void printFreeRam(){
 // set LEDs with CIE luminance correction
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 void setLED(int i){
-  Serial.print("i=");Serial.println(i);
+  //Serial.print("i=");Serial.println(i);
   byte b=(byte) i;
   byte bR=pgm_read_byte_near(redRamp   + i/8) / 4; //the ramps have only 32 values
   byte bG=pgm_read_byte_near(greenRamp + i/8) / 4; //the ramps have only 32 values
   byte bB=pgm_read_byte_near(blueRamp  + i/8) / 4; //the ramps have only 32 values
 #if TEST
-  Serial.print("R G B from rampXYZ"); 
-  Serial.print(bR); Serial.print("/");Serial.print(bG); Serial.print("/");Serial.println(bB);
+  //Serial.print("R G B from rampXYZ"); 
+  //Serial.print(bR); //Serial.print("/");//Serial.print(bG); //Serial.print("/");Serial.println(bB);
 #endif
   analogWrite(lightPin, bR);
   analogWrite(lightPin2, bG);
@@ -160,27 +160,10 @@ void setLED(int i){
   return;
   /*
   byte bCIE = pgm_read_byte_near(cie+b);
-  Serial.print("b=");Serial.println(b);
-  Serial.print("CIE=");
+  //Serial.print("b=");Serial.println(b);
+  //Serial.print("CIE=");
   Serial.println(bCIE);
   */
-  //RGB
-  /*
-  analogWrite(lightPin, bCIE);
-  analogWrite(lightPin2, bCIE);
-  analogWrite(lightPin3, bCIE);
-  */
-  //HSV
-  hsvRGB hsv;
-  hsv.H=b;
-  hsv.S=b;
-  hsv.V=b;
-  hsvRGB rgb=hsv_to_rgb(hsv);
-  Serial.print("R G B after hsv_to_rgb:"); 
-  Serial.print(rgb.R); Serial.print(rgb.G); Serial.print(rgb.B);
-  analogWrite(lightPin, rgb.R);
-  analogWrite(lightPin2, rgb.G);
-  analogWrite(lightPin3, rgb.B);
  }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -189,7 +172,7 @@ void setLED(int i){
 void testLEDsteps(){
   return;
   for(int x=0; x<256; x++){
-    Serial.print("x->");Serial.println(cie[x]);
+    //Serial.print("x->");Serial.println(cie[x]);
   }
   for(int x=0; x<256; x++){
     setLED(x);
@@ -242,14 +225,32 @@ void setup () {
 //  lcd.init();
 
   // Set up special characters.
-  lcd.createChar(0, newChar0);
-  lcd.createChar(1, newChar1);
-  lcd.createChar(2, newChar2);
-  lcd.createChar(3, newChar3);
-  lcd.createChar(4, newChar4);
-  lcd.createChar(5, newChar5);
-  lcd.createChar(6, newChar6);
-  lcd.createChar(7, newChar7); 
+  byte bArray[8];
+  //read bytes from PROGMEM to PROG RAM
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar0+k);
+  lcd.createChar(0, bArray);//newChar0);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar1+k);
+  lcd.createChar(1, bArray);//newChar1);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar2+k);
+  lcd.createChar(2, bArray);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar3+k);
+  lcd.createChar(3, bArray);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar4+k);
+  lcd.createChar(4, bArray);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar5+k);
+  lcd.createChar(5, bArray);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar6+k);
+  lcd.createChar(6, bArray);
+  for(int k=0; k<8; k++)
+    bArray[k]=pgm_read_byte_near(newChar7+k);
+  lcd.createChar(7, bArray); 
   printFreeRam();
 
 #ifdef USE_FM_RADIO
@@ -315,37 +316,37 @@ void setup () {
 #endif
 
   stepSize = 255.0f / (float)(fadeInTime * 60.0f); // May be use a 'log' curve.
-Serial.print("stepSize=");Serial.println(stepSize);
+//Serial.print("stepSize=");Serial.println(stepSize);
   // Dump eeprom to serial
   Serial.println("\n-- Dump eeprom -------------------------------");
-  Serial.print("alarmHour: ");  
-  Serial.print((int)alarmHour);
-  Serial.print(":");
+  //Serial.print("alarmHour: ");  
+  //Serial.print((int)alarmHour);
+  //Serial.print(":");
   if (alarmMinute < 10)
-    Serial.print("0");
+    //Serial.print("0");
   Serial.println((int)alarmMinute);
 
-  Serial.print("alarmActive: ");
+  //Serial.print("alarmActive: ");
   Serial.println(alarmActive?"ON":"OFF");
 
-  Serial.print("snoozeTime: ");
+  //Serial.print("snoozeTime: ");
   Serial.println((int)snoozeTime);
 
-  Serial.print("fadeInTime: ");
+  //Serial.print("fadeInTime: ");
   Serial.println((int)fadeInTime);
 
-  Serial.print("useWakeUpLight: ");
+  //Serial.print("useWakeUpLight: ");
   Serial.println(useWakeUpLight?"ON":"OFF");
 
-  Serial.print("alarmIsRadio: ");
+  //Serial.print("alarmIsRadio: ");
   Serial.println(alarmIsRadio?"ON":"OFF");
 
 #ifdef USE_FM_RADIO
-  Serial.print("radioFrequency: ");
-  Serial.print((float)radioFrequency/100.0f);
+  //Serial.print("radioFrequency: ");
+  //Serial.print((float)radioFrequency/100.0f);
   Serial.println(" MHz");
 #else
-  Serial.print("radio undefined!");
+  //Serial.print("radio undefined!");
 #endif
   Serial.println("----------------------------------------------");
 
@@ -765,7 +766,8 @@ void loop () {
   }
 
   //delay(50);
-
+/*
+// Serial control
   int freq;
   bool valid;
   if(Serial.available()>0){
@@ -774,7 +776,7 @@ void loop () {
     switch(Serial.read()){
       //If we get the number 8, turn the volume up.
     case '8':
-      Serial.print("Volume: ");
+      //Serial.print("Volume: ");
 #ifdef USE_FM_RADIO
       radio.volumeUp();
       //lcd.print(radio.getVolume());
@@ -786,7 +788,7 @@ void loop () {
       //If we get the number 2, turn the volume down.
     case '2':
       //lcd.print(radio.getVolume());
-      Serial.print("Volume: ");
+      //Serial.print("Volume: ");
 #ifdef USE_FM_RADIO
       radio.volumeDown();
       Serial.println(map(radio.getVolume(), 0, 62, 0, 100));
@@ -796,7 +798,7 @@ void loop () {
       break;
       //If we get the number 4, seek down to the next channel in the current bandwidth (wrap to the top when the bottom is reached).
     case '4':
-      Serial.print("Frequency: ");
+      //Serial.print("Frequency: ");
 #ifdef USE_FM_RADIO
       radio.seekDown();
       delay(10);
@@ -809,7 +811,7 @@ void loop () {
       break;
       //If we get the number 6, seek up to the next channel in the current bandwidth (wrap to the bottom when the top is reached).
     case '6':
-      Serial.print("Frequency: ");
+      //Serial.print("Frequency: ");
 #ifdef USE_FM_RADIO
       radio.seekUp();
       delay(10);
@@ -840,7 +842,7 @@ void loop () {
     case 'S':
     case 's':
 #ifdef USE_FM_RADIO
-      Serial.print((unsigned char)radio.getStatus());
+      //Serial.print((unsigned char)radio.getStatus());
 #else 
       Serial.println("no radio");
 #endif      
@@ -848,9 +850,9 @@ void loop () {
     default:
       break;
     }
-
     //
   }   
+*/
 
 } // End -> Loop()
 
@@ -879,32 +881,32 @@ void SendStatusToSerial(DateTime &dateTime)
 
   Serial.write(data, 15);
 
-  //  Serial.print(dateTime.year(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(dateTime.month(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(dateTime.day(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(dateTime.hour(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(dateTime.minute(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(dateTime.second(), DEC);  
-  //  Serial.print(",");
-  //  Serial.print(alarmHour, DEC);  
-  //  Serial.print(",");
-  //  Serial.print(alarmMinute, DEC);  
-  //  Serial.print(",");
-  //  Serial.print(snoozeTime, DEC);  
-  //  Serial.print(",");
-  //  Serial.print(fadeInTime, DEC);  
-  //  Serial.print(",");
-  //  Serial.print((int)alarmActive, DEC);  
-  //  Serial.print(",");
-  //  Serial.print((int)alarmIsRadio, DEC);  
-  //  Serial.print(",");
-  //  Serial.print((int)useWakeUpLight, DEC);  
-  //  Serial.print(",");
+  //  //Serial.print(dateTime.year(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(dateTime.month(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(dateTime.day(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(dateTime.hour(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(dateTime.minute(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(dateTime.second(), DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(alarmHour, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(alarmMinute, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(snoozeTime, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print(fadeInTime, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print((int)alarmActive, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print((int)alarmIsRadio, DEC);  
+  //  //Serial.print(",");
+  //  //Serial.print((int)useWakeUpLight, DEC);  
+  //  //Serial.print(",");
   //  Serial.println(radioFrequency, DEC);
 }
 
@@ -918,26 +920,26 @@ void SendStatusToSerial(DateTime &dateTime)
 
 void debugPrintTime(DateTime now)
 {
-  Serial.print("Time: ");
-  Serial.print(now.year(), DEC);
-  Serial.print("/");
-  Serial.print(now.month(), DEC);
-  Serial.print("/");
-  Serial.print(now.day(), DEC);
-  Serial.print(" ");
+  //Serial.print("Time: ");
+  //Serial.print(now.year(), DEC);
+  //Serial.print("/");
+  //Serial.print(now.month(), DEC);
+  //Serial.print("/");
+  //Serial.print(now.day(), DEC);
+  //Serial.print(" ");
   if (now.hour() < 10)
-    Serial.print("0");
-  Serial.print(now.hour(), DEC);
-  Serial.print(":");
+    //Serial.print("0");
+  //Serial.print(now.hour(), DEC);
+  //Serial.print(":");
   if (now.minute() < 10)
-    Serial.print("0");
-  Serial.print(now.minute(), DEC);
-  Serial.print(":");
+    //Serial.print("0");
+  //Serial.print(now.minute(), DEC);
+  //Serial.print(":");
   if (now.second() < 10)
-    Serial.print("0");
-  Serial.print(now.second(), DEC);
-  Serial.print(", alarmOn: ");
-  Serial.print(alarmOn, DEC);
+    //Serial.print("0");
+  //Serial.print(now.second(), DEC);
+  //Serial.print(", alarmOn: ");
+  //Serial.print(alarmOn, DEC);
 
   Serial.println();
 }
