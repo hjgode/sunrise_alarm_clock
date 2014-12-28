@@ -68,14 +68,24 @@
 #include <EEPROM.h>
 #include <RTClib.h>
 
+//TPA2016 amp code
+#include <Adafruit_TPA2016.h>
+Adafruit_TPA2016 tpa2016 = Adafruit_TPA2016();;
+
 #undef USE_FM_RADIO
 #ifdef USE_FM_RADIO
   //fm radio
   #include "Si4735.h"
 #endif
 
-#include <SoftwareSerial.h>
-SoftwareSerial mp3(2, 3);//modify this with the connector you are using.
+#define _MP3SERIAL_
+#ifdef _MP3SERIAL_
+  #include <SoftwareSerial.h>
+  #include <MP3SERIAL.h>
+  //#include "./MP3SERIAL.h"
+  MP3SERIAL mp3serial(2, 3);
+//  SoftwareSerial mp3(2, 3);//modify this with the connector you are using.
+#endif
 
 #include "LCDoutput.h"
 #include "keyboard.h"
@@ -85,8 +95,28 @@ SoftwareSerial mp3(2, 3);//modify this with the connector you are using.
 // set the LCD address to 0x27 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+//LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+
+//### start pollin I2C LCD ###
+#define I2C_ADDR    0x40 >> 1 // I2C-Addresse
+// Die Pin-Belegung des Displays
+#define BACKLIGHT_PIN  7
+#define En_pin  6
+#define Rw_pin  5
+#define Rs_pin  4
+#define D4_pin  0
+#define D5_pin  1
+#define D6_pin  2
+#define D7_pin  3
+
+#define  LED_OFF  1
+#define  LED_ON  0
+// Prototypen
+LiquidCrystal_I2C lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
+//LiquidCrystal_I2C lcd(0x40, 6, 5, 4, 0, 1, 2, 3);  // Pollin I2C, Set the LCD I2C address
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
+// ### end POLLIN Display ###
+
 RTC_DS1307 RTC;
 
 #ifdef USE_FM_RADIO
@@ -105,7 +135,9 @@ int snoozeTime = -1;            // The snooze time.
 int fadeInTime = -1;  // The fade in time for wake-up light.
 
   int radioFrequency = 8890;//9390;      // Specifies the FM frequency/sender.
-
+  int mp3Title = 1;  //which mp3 title to play
+  int mp3MaxTitle = 1;  //max title available
+  
 float intensity = 0;
 float stepSize = 0;
 bool backLightOn = true; // Default to always on. If 'Off' turn on at any key. Auto off at display timeout.
@@ -180,50 +212,7 @@ void testLEDsteps(){
   }
 }
 
-//::::::::::::::::::::::::::::::::::::::::::::::::::::::
-// Setup 
-//::::::::::::::::::::::::::::::::::::::::::::::::::::::
-void setup () {
-  Serial.begin(57600);
-  Serial.println("sunRise Alarm Clock v0.01");
-  printFreeRam();
-  Wire.begin();
-  RTC.begin();
-  printFreeRam();
-
-  pinMode(lightPin, OUTPUT); 
-  pinMode(lightPin2, OUTPUT); 
-  pinMode(lightPin3, OUTPUT); 
-  pinMode(buzzerPin, OUTPUT); 
-  pinMode(A0, INPUT);
-  digitalWrite(buzzerPin, LOW);
-
-  printFreeRam();
-  setLED(0);
-//  analogWrite(lightPin, 0);
-//  analogWrite(lightPin2, 0);
-//  analogWrite(lightPin3, 0);
-  printFreeRam();
-  
-
-  if (! RTC.isrunning()) {
-	  Serial.println("RTC is NOT running!");
-	  // Error Beep
-	  tone(buzzerPin, beepFrequency, 500);
-	  delay(300); 
-	  tone(buzzerPin, beepFrequency, 500);
-	  delay(300); 
-	  tone(buzzerPin, beepFrequency, 500);
-	  delay(300); 
-  }
-
-  // --------------------------
-  // Initialize LCD Display.
-  // --------------------------   
-  lcd.backlight();
-  lcd.begin(16,2);
-//  lcd.init();
-
+void setupSpecialChars(){
   // Set up special characters.
   byte bArray[8];
   //read bytes from PROGMEM to PROG RAM
@@ -251,6 +240,93 @@ void setup () {
   for(int k=0; k<8; k++)
     bArray[k]=pgm_read_byte_near(newChar7+k);
   lcd.createChar(7, bArray); 
+}
+
+void setupAudioAmp(){
+  if(tpa2016.begin()){
+    int8_t iGain=tpa2016.getGain();
+    Serial.print("gain="); Serial.println(iGain); 
+    // Turn off AGC for the gain test
+    tpa2016.setAGCCompression(TPA2016_AGC_OFF);
+    // we also have to turn off the release to really turn off AGC
+    tpa2016.setReleaseControl(0);
+    tpa2016.enableChannel(true, true);
+    //tpa2016.setAGCMaxGain(12);
+    tpa2016.setGain(30);
+    iGain=tpa2016.getGain();
+    Serial.print("now gain="); Serial.println(iGain); 
+  }
+  else{
+    Serial.println("audioamp init failed!"); 
+  }
+}
+
+void setupMP3(){
+  mp3MaxTitle = mp3serial.getSDNumFiles();
+  mp3Title=1;
+  byte bState=mp3serial.getState();
+  byte bVol=mp3serial.getVolume();
+  byte bNum=mp3serial.getSDNumFiles();
+  Serial.print("last="); Serial.print(mp3MaxTitle); Serial.print("state="); Serial.print(bState); Serial.print(", vol="); Serial.print(bVol); Serial.print(", numFiles="); Serial.println(bNum);
+  mp3serial.stop();
+  mp3serial.setVolume(20);
+  mp3serial.playByIndex(mp3Title);
+  mp3serial.play();
+  delay(3000);
+  mp3serial.setRepeatSingle();
+  mp3serial.stop();
+}
+
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// Setup 
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::
+void setup () {
+  Serial.begin(57600);
+  Serial.println("sunRise Alarm Clock v0.01");
+  printFreeRam();
+  Wire.begin();
+  RTC.begin();
+  printFreeRam();
+
+  //LED pin settings
+  pinMode(lightPin, OUTPUT); 
+  pinMode(lightPin2, OUTPUT); 
+  pinMode(lightPin3, OUTPUT); 
+  
+  //buzzer pin
+  pinMode(buzzerPin, OUTPUT); 
+  
+  pinMode(A0, INPUT);
+  digitalWrite(buzzerPin, LOW);
+
+  printFreeRam();
+  
+  //RGB LED OFF
+  setLED(0);
+
+  printFreeRam();  
+
+  if (! RTC.isrunning()) {
+	  Serial.println("RTC is NOT running!");
+	  // Error Beep
+	  tone(buzzerPin, beepFrequency, 500);
+	  delay(300); 
+	  tone(buzzerPin, beepFrequency, 500);
+	  delay(300); 
+	  tone(buzzerPin, beepFrequency, 500);
+	  delay(300); 
+  }
+
+  // --------------------------
+  // Initialize LCD Display.
+  // --------------------------   
+  lcd.backlight();
+  lcd.begin(16,2);
+//  lcd.init();
+
+  // Set up special characters.
+  setupSpecialChars();
+
   printFreeRam();
 
 #ifdef USE_FM_RADIO
@@ -262,6 +338,13 @@ void setup () {
   delay(100);
   radio.unmute();
   radio.setVolume(0);
+#endif
+
+//init apmlifier
+setupAudioAmp();
+
+#ifdef _MP3SERIAL_
+  setupMP3();
 #endif
 
   lcd.clear();
@@ -295,6 +378,7 @@ void setup () {
 #ifdef USE_FM_RADIO
     radioFrequency = EEPROMReadInt(radioFrequencyAddr);
 #endif
+    mp3Title = (byte)EEPROM.read(mp3TitleAddr);
     alarmIsRadio = (bool)EEPROM.read(alarmIsRadioAddr);
   }//DEBUGMODE
 
@@ -314,6 +398,8 @@ void setup () {
 
   radio.tuneFrequency(radioFrequency);
 #endif
+   if(mp3Title > mp3MaxTitle)
+     mp3Title=1;
 
   stepSize = 255.0f / (float)(fadeInTime * 60.0f); // May be use a 'log' curve.
 //Serial.print("stepSize=");Serial.println(stepSize);
@@ -348,6 +434,8 @@ void setup () {
 #else
   //Serial.print("radio undefined!");
 #endif
+
+
   Serial.println("----------------------------------------------");
 
   // --------------------------
@@ -403,7 +491,12 @@ void setup () {
 
 // Testing Soft on for radio.
 byte volume = 0;
-byte maxVolume = 62;
+#ifdef USE_FM_RADIO
+   byte maxVolume = 62;
+#endif
+#ifdef _MP3SERIAL_
+   byte maxVolume = 31;
+#endif
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::
 // loop 
@@ -486,6 +579,10 @@ void loop () {
 #ifdef USE_FM_RADIO
         radio.setVolume(volume);       
 #endif
+#ifdef _MP3SERIAL_
+        mp3serial.setVolume(volume);
+        mp3serial.stop();
+#endif
         sleepTime = 0;
       }
     }
@@ -539,6 +636,10 @@ void loop () {
           radio.setVolume(volume);
 #endif
           volume++;
+          #ifdef _MP3SERIAL_
+            mp3serial.setVolume(volume);
+            mp3serial.play();
+          #endif
           //Serial.println(volume, DEC);
         }
       }
@@ -594,6 +695,9 @@ void loop () {
 #ifdef USE_FM_RADIO
             radio.setVolume(volume);
 #endif
+            #ifdef _MP3SERIAL_
+              mp3serial.stop();
+            #endif
           }
           delay(pauseTime);
           lcd.clear();
@@ -631,6 +735,9 @@ void loop () {
 #ifdef USE_FM_RADIO
             radio.setVolume(volume);
 #endif
+          #ifdef _MP3SERIAL_
+            mp3serial.stop();
+          #endif
           }
 
           delay(pauseTime);
@@ -643,6 +750,9 @@ void loop () {
 #ifdef USE_FM_RADIO
           radio.setVolume(volume);
 #endif
+          #ifdef _MP3SERIAL_
+            mp3serial.stop();
+          #endif
           sleepTime = 0;
         }
         else // Show Info
@@ -704,6 +814,10 @@ void loop () {
         // Mute/Unmute radio
         radioOn ? radio.setVolume(maxVolume) : radio.setVolume(0);
 #endif
+          #ifdef _MP3SERIAL_
+            radioOn ? mp3serial.play() : mp3serial.stop();
+          #endif
+
         delay(pauseTime);
         lcd.clear();
 

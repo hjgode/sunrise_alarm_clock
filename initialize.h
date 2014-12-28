@@ -13,6 +13,7 @@ const int fadeInTimeAddr = 4;
 const int useWakeUpLightAddr = 5;
 const int alarmIsRadioAddr = 6;
 const int radioFrequencyAddr = 7; // 2 bytes
+const int mp3TitleAddr = 9;
 
 // ***********************************
 // **** PIN ASSIGNMENTS **************

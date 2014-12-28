@@ -1,0 +1,28 @@
+Using the TS2016 audio amplifier is pretty easy - the power, control and input pins are on the left. On the right are the speaker outputs.
+
+The power and control pins are on a 0.1" spaced header. The speaker outputs are for 3.5mm spaced terminal blocks (included)
+
+Speaker Outputs
+
+On the right there are the 4 output speaker pins. These outputs are Bridge Tied Load which means you must connect the speakers directly - do not try to connect these outputs to another amplifier! Use any 4 to 8 ohm speakers. Lower resistance means you'll be able to get louder audio (2.8W max into 4 ohm, 1.7W max into 8 ohm). You'll want to make sure your speakers have a wattage rating higher than the max power, so make sure your 4 ohm speakers are 3W+ and your 8 ohm speakers are 2W+. Otherwise you risk blowing out the speakers or otherwise damaging them with too much power. If you're really needing to driver smaller speakers, you can use the output limiting capability of the chip, see the Software page for details
+
+Power Pins
+
+Starting at the top of the left side, there are two power pins, VDD and GND that are used for powering the chip. These should be 2.7V to 5.5VDC. There's no polarity protection so make sure you get the wires in the right polarity! Higher voltages will give you more power so if you want that full 2.8W you need to give it 5 VDC.
+
+Shutdown Control Pins
+
+You can turn off the amplifier with the SHDN pin. Unlike the TS2012, this chip doesn't have separate pins for turning off each channel (left/right) from the breakout. Instead, if you want to turn off the left or right channel only, you'll need to do it via the i2c interface, see the Software page for details.
+Connect this pin to ground to turn off the amplifier completely, By default this pin has pullups to VDD so both channels are on by default!
+
+Audio input pins
+
+There are four pins for the audio input signal. For right channel, R+ and R- and for left channel, L+ and L-. These are differential inputs. If you are connecting this to a device with differential outputs. just connect the + and - pins as indicated on that device's outputs. If there is only one differential reference, connect L- and R- together and tie that to your differential reference. If you are using every-day single-ended audio signal, connect L- and R- to ground, and L+ and R+ to your signal.
+
+There are 1uF input series capacitors on all four pins so it is OK if your signal does not have audio bypass caps. If your signal does have audio bypass caps, you do not need to remove them, just keep them in.
+
+I2C Control pins
+
+The special thing about this amplifier is that instead of switches, jumpers or potentiometer for setting the gain, there's an i2c interface. This interface can be connected to just about any kind of microcontroller & we have example code for Arduino. To use, connect the SCL and SDA pins to your microcontroller I2C host pins.
+
+You also have to connect the I2C VCC pin to your logic voltage level. If you're using a 3V microcontroller, connect it to 3V. If you're using a 5V microcontroller, connect it to 5V. This is so you can have 5V powering the amplifier but 3V to keep the levels happy for your lower voltage micro.
